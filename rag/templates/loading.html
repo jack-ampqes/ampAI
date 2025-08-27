@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ampAI - Starting Up</title>
+    <link rel="icon" type="image/png" href="/static/ampai.png">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #eaa166 0%, #ad5e21 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .loading-container {
+            text-align: center;
+            background: rgba(26, 32, 44, 0.95);
+            padding: 60px 40px;
+            border-radius: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            backdrop-filter: blur(10px);
+            max-width: 600px;
+            width: 90%;
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 30px;
+            display: block;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+            border-radius: 25px;
+            object-fit: cover;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .status-text {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            color: #e2e8f0;
+            min-height: 1.5em;
+        }
+
+        .progress-container {
+            background: #2d3748;
+            border-radius: 25px;
+            height: 12px;
+            margin: 30px 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #eaa166, #ad5e21);
+            border-radius: 25px;
+            width: 0%;
+            transition: width 0.8s ease;
+            position: relative;
+        }
+
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .component-status {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(45, 55, 72, 0.5);
+            padding: 15px 20px;
+            border-radius: 15px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .status-item.ready {
+            border-color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+
+        .status-item.error {
+            border-color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+        }
+
+        .status-item.loading {
+            border-color: #ffc107;
+            background: rgba(255, 193, 7, 0.1);
+        }
+
+        .status-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #6c757d;
+            transition: all 0.3s ease;
+        }
+
+        .status-dot.ready {
+            background: #28a745;
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+        }
+
+        .status-dot.error {
+            background: #dc3545;
+            box-shadow: 0 0 10px rgba(220, 53, 69, 0.5);
+        }
+
+        .status-dot.loading {
+            background: #ffc107;
+            box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-label {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .status-details {
+            color: #a0aec0;
+            font-size: 0.9rem;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #2d3748;
+            border-top: 4px solid #eaa166;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 30px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: rgba(220, 53, 69, 0.2);
+            border: 1px solid #dc3545;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            color: #f8d7da;
+            display: none;
+        }
+
+        .retry-button {
+            background: linear-gradient(135deg, #eaa166, #ad5e21);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 12px 24px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.2s ease;
+        }
+
+        .retry-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .auto-refresh {
+            font-size: 0.8rem;
+            color: #a0aec0;
+            margin-top: 20px;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .step {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4a5568;
+            transition: all 0.3s ease;
+        }
+
+        .step.active {
+            background: #eaa166;
+            transform: scale(1.2);
+        }
+
+        .step.completed {
+            background: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-container">
+        <img src="/static/ampai.png" alt="ampAI Logo" class="logo">
+        <h1>ampAI</h1>
+        <div class="status-text" id="statusText">Initializing system...</div>
+        
+        <div class="step-indicator">
+            <div class="step active" id="step1"></div>
+            <div class="step" id="step2"></div>
+            <div class="step" id="step3"></div>
+            <div class="step" id="step4"></div>
+        </div>
+        
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        
+        <div class="component-status">
+            <div class="status-item loading" id="llamaStatus">
+                <div class="status-left">
+                    <div class="status-dot loading" id="llamaDot"></div>
+                    <div>
+                        <div class="status-label">Llama Server</div>
+                        <div class="status-details" id="llamaDetails">Starting...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="status-item loading" id="ragStatus">
+                <div class="status-left">
+                    <div class="status-dot loading" id="ragDot"></div>
+                    <div>
+                        <div class="status-label">RAG System</div>
+                        <div class="status-details" id="ragDetails">Indexing sources...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="status-item ready" id="webStatus">
+                <div class="status-left">
+                    <div class="status-dot ready" id="webDot"></div>
+                    <div>
+                        <div class="status-label">Web Interface</div>
+                        <div class="status-details">Ready</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="spinner" id="spinner"></div>
+        
+        <div class="error-message" id="errorMessage"></div>
+        <button class="retry-button" id="retryButton" onclick="retryConnection()" style="display: none;">
+            Retry Connection
+        </button>
+        
+        <div class="auto-refresh">
+            This page will automatically redirect when ready
+        </div>
+    </div>
+
+    <script>
+        let progress = 0;
+        let checkCount = 0;
+        const maxChecks = 120; // 60 seconds max
+        let currentStep = 1;
+        
+        const steps = [
+            { name: 'Initializing...', progress: 10 },
+            { name: 'Gimme a sec...', progress: 20 },
+            { name: 'Hold for a moment...', progress: 30 },
+            { name: 'Be patient, Brian...', progress: 40 },
+            { name: 'Indexing Sources...', progress: 60 },
+            { name: 'Finalizing...', progress: 90 }
+        ];
+        
+        function updateProgress(percent) {
+            document.getElementById('progressBar').style.width = percent + '%';
+        }
+        
+        function updateStatus(text) {
+            document.getElementById('statusText').textContent = text;
+        }
+        
+        function updateStep(stepNumber) {
+            // Update step indicators
+            for (let i = 1; i <= 4; i++) {
+                const step = document.getElementById(`step${i}`);
+                if (i < stepNumber) {
+                    step.className = 'step completed';
+                } else if (i === stepNumber) {
+                    step.className = 'step active';
+                } else {
+                    step.className = 'step';
+                }
+            }
+            
+            // Update progress based on step
+            if (stepNumber <= steps.length) {
+                const step = steps[stepNumber - 1];
+                updateProgress(step.progress);
+                updateStatus(step.name);
+            }
+        }
+        
+        function updateComponentStatus(component, status, details) {
+            const statusItem = document.getElementById(component + 'Status');
+            const statusDot = document.getElementById(component + 'Dot');
+            const statusDetails = document.getElementById(component + 'Details');
+            
+            // Remove all status classes
+            statusItem.className = 'status-item';
+            statusDot.className = 'status-dot';
+            
+            // Add appropriate status class
+            statusItem.classList.add(status);
+            statusDot.classList.add(status);
+            
+            // Update details
+            if (statusDetails) {
+                statusDetails.textContent = details;
+            }
+            
+            // Update step based on component status
+            if (component === 'llama' && status === 'ready') {
+                updateStep(2);
+            } else if (component === 'rag' && status === 'ready') {
+                updateStep(3);
+            }
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            const retryButton = document.getElementById('retryButton');
+            const spinner = document.getElementById('spinner');
+            
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            retryButton.style.display = 'inline-block';
+            spinner.style.display = 'none';
+        }
+        
+        function hideError() {
+            const errorDiv = document.getElementById('errorMessage');
+            const retryButton = document.getElementById('retryButton');
+            const spinner = document.getElementById('spinner');
+            
+            errorDiv.style.display = 'none';
+            retryButton.style.display = 'none';
+            spinner.style.display = 'block';
+        }
+        
+        function retryConnection() {
+            hideError();
+            checkCount = 0;
+            progress = 0;
+            currentStep = 1;
+            updateProgress(0);
+            updateStep(1);
+            updateStatus('Retrying connection...');
+            checkServers();
+        }
+        
+        async function checkServers() {
+            checkCount++;
+            
+            try {
+                // Check system status using our loading-status endpoint
+                const response = await fetch('/api/loading-status');
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Update Llama server status
+                    updateComponentStatus('llama', data.llama_server, data.llama_details);
+                    
+                    // Update RAG system status
+                    updateComponentStatus('rag', data.rag_system, data.rag_details);
+                    
+                    // Update web server status (should always be ready)
+                    updateComponentStatus('web', data.web_server, data.web_details);
+                    
+                    // Check if all systems are ready
+                    if (data.overall_status === 'ready') {
+                        // Additional check: ensure RAG system has documents
+                        if (data.rag_details && data.rag_details.includes('documents')) {
+                            updateStep(4);
+                            updateProgress(100);
+                            updateStatus('All systems ready! Redirecting...');
+                            
+                            // Hide spinner and show success
+                            document.getElementById('spinner').style.display = 'none';
+                            
+                            setTimeout(() => {
+                                window.location.href = '/chat';
+                            }, 1500);
+                            return;
+                        } else {
+                            // RAG system says ready but no documents - wait longer
+                            updateStatus('RAG system initializing...');
+                        }
+                    }
+                } else {
+                    updateComponentStatus('llama', 'error', 'Connection failed');
+                    updateComponentStatus('rag', 'error', 'Connection failed');
+                    updateStatus('Waiting for servers...');
+                }
+            } catch (error) {
+                updateComponentStatus('llama', 'error', 'Connection failed');
+                updateComponentStatus('rag', 'error', 'Connection failed');
+                updateStatus('Waiting for servers...');
+            }
+            
+            // Continue checking if not ready and haven't exceeded max checks
+            if (checkCount < maxChecks) {
+                setTimeout(checkServers, 500);
+            } else {
+                updateStatus('Connection timeout. Please check if servers are running.');
+                showError('Unable to connect to servers. Please ensure ampAI is running and try again.');
+            }
+        }
+        
+        // Start the loading process
+        updateStep(1);
+        setTimeout(checkServers, 1000);
+    </script>
+</body>
+</html>
