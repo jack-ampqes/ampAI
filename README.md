@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ampAI
 
-## Getting Started
+Private chat web app: **Next.js (App Router)** + **react-native-web** + **NativeWind**, **Supabase** (email magic link + Postgres + RLS), and a **Mac Mini LLM gateway** in front of LM Studio.
 
-First, run the development server:
+## Web now, native later
+
+This repo ships a **web** app from Next.js. The UI uses React Native primitives so you can later add an Expo app or monorepo and reuse `components/`. Next.js alone does not produce iOS/Android binaries.
+
+## Setup
+
+1. Copy `.env.example` to `.env.local` and fill in Supabase and gateway values.
+2. In Supabase SQL editor (or CLI), run `supabase/migrations/001_initial_schema.sql`.
+3. Enable **Email** auth. Under **URL configuration**, add your site URL and redirect allow list, including `/callback` (e.g. `http://localhost:3000/callback`).
+4. In **Authentication → Email templates**, use the **Magic Link** style template (link to sign in) rather than a code-only template if you want click-to-sign-in only.
+5. `npm install` and `npm run dev`.
+
+### “Email rate limit exceeded”
+
+Supabase limits how many auth emails (magic links, etc.) can be sent per hour when you use their **built-in** email. Hitting “Send sign-in email” repeatedly during development burns through that quota quickly. **Wait** for the window to reset (often up to an hour), or connect **custom SMTP** under **Project Settings → Authentication** so you control deliverability and limits. See [Auth rate limits](https://supabase.com/docs/guides/auth/rate-limits).
+
+## LLM gateway (`llm-gateway/`)
+
+Run on the machine that can reach LM Studio (e.g. Mac Mini):
 
 ```bash
+cd llm-gateway
+cp .env.example .env
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Set `LLM_GATEWAY_URL` in Vercel to `https://<your-gateway-host>/chat` and `LLM_GATEWAY_SECRET` to the same value as `GATEWAY_SECRET` on the gateway.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `npm run dev` — Next.js dev server
+- `npm run build` — production build
